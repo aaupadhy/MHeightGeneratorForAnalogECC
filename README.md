@@ -153,8 +153,20 @@ In analog transmission, the generator matrix G plays a crucial role in ensuring 
 
 - **Trade-offs**:
   - Increasing redundancy (larger n) improves noise immunity but increases bandwidth requirements. The optimization of G balances these trade-offs.
+ 
+- **Full Rank**:
+  - The Generator matrix G must be a full-rank matrix. This is because, when decoding after transmission, we need to compute the pseudo-inverse of the generator matrix, to retrieve the original code, which is only possible if the generator matrix is full-rank.
+ 
+$$
+G^+ = (G^T G)^{-1} G^T
+$$
+$$
+x = c' G^+
+$$
 
 In summary, the generator matrix G and the optimization of its m-height are critical for achieving robust and efficient communication in analog transmission systems.
+
+![alt text](https://github.com/aaupadhy/MHeightGeneratorForAnalogECC/blob/main/Flowchart%20of%20Analog%20Transmission.png?raw=true)
 
 ---
 
