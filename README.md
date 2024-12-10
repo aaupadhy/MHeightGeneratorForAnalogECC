@@ -3,12 +3,12 @@
 
 ## **Overview**
 
-This project provides an efficient solution to the problem of finding optimal generator matrices \( G \) to minimize the "m-height" of any analog code \( x \). The "m-height" of a codeword \(c\) generated with Matrix \(G\) and Vector \(x\) measures the ratio of the largest and \(m^{th}\) largest absolute elements of \(c\). The m-height of the Generator Matrix \(G\) is the maximum m-height across all its codewords for all possible \(x\)'s.to minimize the m-height of an analog code. The implementation combines genetic programming and stochastic optimization techniques to iteratively refine both \( G \)-matrices and \( X \)-vectors for improved performance.
+This project provides an efficient solution to the problem of finding optimal generator matrices G to minimize the "m-height" of any analog code x. The "m-height" of a codeword c generated with Matrix G and Vector x measures the ratio of the largest and m<sup>th</sup> largest absolute elements of c. The m-height of the Generator Matrix G is the maximum m-height across all its codewords for all possible x's.to minimize the m-height of an analog code. The implementation combines genetic programming and stochastic optimization techniques to iteratively refine both G-matrices and X-vectors for improved performance.
 
 
 The approach integrates concepts from two tasks:
-1. Optimize \( G \)-matrices to minimize their associated m-heights.
-2. Optimize \( X \)-vectors for a given \( G \)-matrix to maximize the corresponding m-heights.
+1. Optimize G-matrices to minimize their associated m-heights.
+2. Optimize X-vectors for a given G-matrix to maximize the corresponding m-heights.
 
 The solution leverages GPU acceleration with PyTorch for efficient tensor operations and parallelization.
 
@@ -19,7 +19,7 @@ The solution leverages GPU acceleration with PyTorch for efficient tensor operat
 
 ### **Introduction**
 
-Our generator matrix \( G \) will be a full-rank matrix of the form:
+Our generator matrix G will be a full-rank matrix of the form:
 
 $$
 G =
@@ -31,17 +31,17 @@ g_{k-1,0} & g_{k-1,1} & \cdots & g_{k-1,n-1}
 \end{bmatrix}
 $$
 
-where \( k < n \) and each element \( g_{i,j} \) is an integer in the range \(-100000\) to \(+100000\).
+where k < n and each element g<sub>ij</sub> is an integer in the range -100000 to +100000.
 
 Let:
 
 $$
-x = (x_0, x_1, \cdots, x_{k-1}) \in \mathbb{R}^k
+x = (x_0, x_1, ... , x_{k-1}) \in \mathbb{R}^k
 $$
 
-be a vector of length \( k \), where each element \( x_i \) is a real number.
+be a vector of length k, where each element x_i is a real number.
 
-Multiplying \( x \) with \( G \), we get a real-valued vector \( c \) of length \( n \), called a **codeword**:
+Multiplying x with G, we get a real-valued vector c of length n, called a **codeword**:
 
 $$
 c = (c_0, c_1, \cdots, c_{n-1})
@@ -58,17 +58,17 @@ g_{k-1,0} & g_{k-1,1} & \cdots & g_{k-1,n-1}
 \in \mathbb{R}^n
 $$
 
-For each \( i = 0, 1, \cdots, n-1 \), we compute:
+For each i = 0, 1, ... , n-1, we compute:
 
 $$
-c_i = (x_0, x_1, \cdots, x_{k-1}) \cdot 
+c_i = (x_0, x_1, ... , x_{k-1}) \cdot 
 \begin{bmatrix}
 g_{0,i} \\
 g_{1,i} \\
 \vdots \\
 g_{k-1,i}
 \end{bmatrix}
-= x_0 g_{0,i} + x_1 g_{1,i} + \cdots + x_{k-1} g_{k-1,i} =
+= x_0 g_{0,i} + x_1 g_{1,i} + ...  + x_{k-1} g_{k-1,i} =
 \sum_{j=0}^{k-1} x_j g_{j,i}
 $$
 
@@ -76,33 +76,33 @@ $$
 
 ### **Ranking Permutation**
 
-For a codeword \( c = (c_0, c_1, \cdots, c_{n-1}) \in \mathbb{C} \) and a permutation \( \pi \), if:
+For a codeword c = (c<sub>0</sub>, c<sub>1</sub>, ... , c<sub>n-1</sub>) in C and a permutation $\pi$, if:
 
 $$
-|c_{\pi(0)}| \geq |c_{\pi(1)}| \geq \cdots \geq |c_{\pi(n-1)}|
+|c_{\pi(0)}| \geq |c_{\pi(1)}| \geq ... \geq |c_{\pi(n-1)}|
 $$
 
-then \( \pi \) is called a **Ranking Permutation** of \( c \).
+then $\pi$ is called a **Ranking Permutation** of c.
 
 ---
 
 ### **M-Height of a Codeword**
 
-Given a codeword \( c = (c_0, c_1, \cdots, c_{n-1}) \) and its Ranking Permutation \( \pi \), the **m-height of \( c \)** is defined as:
+Given a codeword c = (c<sub>0</sub>, c<sub>1</sub>, ... , c<sub>n-1</sub>) and its Ranking Permutation $\pi$, the **m-height of c** is defined as:
 
-1. If \( c \) is not the all-zero vector \( (0, 0, \cdots, 0) \) and \( c_{\pi(m)} \neq 0 \), the \( m \)-height of \( c \) is:
+1. If c is not the all-zero vector (0, 0, ... , 0) and c<sub>$\pi(m)$</sub> $\neq$ 0, the m-height of c is:
 
 $$
 h_m(c) = \frac{|c_{\pi(0)}|}{|c_{\pi(m)}|}
 $$
 
-2. If \( c \) is not the all-zero vector \( (0, 0, \cdots, 0) \) and \( c_{\pi(m)} = 0 \), the \( m \)-height of \( c \) is defined as:
+2. If c is not the all-zero vector (0, 0, ... , 0) and c<sub>$\pi(m)$</sub> = 0, the m-height of c is defined as:
 
 $$
 h_m(c) = \infty
 $$
 
-3. If \( c \) is the all-zero vector \( (0, 0, \cdots, 0) \), the \( m \)-height of \( c \) is defined as:
+3. If c is the all-zero vector (0, 0, ... , 0), the m-height of c is defined as:
 
 $$
 h_m(c) = 0
@@ -112,39 +112,73 @@ $$
 
 ### **Objective**
 
-1. **Minimize the m-height of \( G \)**: Find \( G \)-matrices such that the maximum \( m \)-height of any codeword \( c \) generated by \( G \) is minimized.
-2. **Optimize \( X \)-Vectors for \( G \)**: For a given \( G \), find the \( X \)-vectors that maximize the m-height of their corresponding codewords.
+1. **Minimize the m-height of G**: Find G-matrices such that the maximum m-height of any codeword c generated by G is minimized.
+2. **Optimize X-Vectors for G**: For a given G, find the X-vectors that maximize the m-height of their corresponding codewords.
 
 **Constraints**:
-- \( G \)-matrices must be full rank.
-- Elements of \( G \) must be integers.
-- \( X \)-vectors are real-valued and can be updated iteratively to refine results.
+- G-matrices must be full rank.
+- Elements of G must be integers.
+- X-vectors are real-valued and can be updated iteratively to refine results.
 
 
+---
+
+## **Importance of the Generator Matrix in Analog Transmission**
+
+In analog transmission, the generator matrix G plays a crucial role in ensuring robust communication over noisy channels. Any code x of length k is multiplied with a generator matrix G of size k \times n (where k < n) to produce a codeword c of length n. This codeword c is then transmitted through the channel.
+
+### **Why Multiply with G?**
+
+1. **Increase Redundancy**:
+   - By spreading the information in x across n dimensions, G introduces redundancy into the codeword c. 
+   - This redundancy helps mitigate the impact of noise during transmission, ensuring that even if parts of c are corrupted by noise, the original code x can still be reconstructed accurately, enabling more accurate decoding at the receiver.
+
+---
+
+### **Importance of m-Height**
+
+1. **Noise Margin**:
+   - The m-height determines the "distance" between different values of x in the transmitted codeword c. A lower m-height ensures greater spacing between these values.
+   - This increased distance enhances the noise margin, reducing the likelihood of decoding errors.
+
+2. **Improved Noise Immunity**:
+   - A generator matrix G with a low maximum m-height improves the system's immunity to noise by making the transmitted codewords more distinguishable from one another.
+
+---
+
+### **Key Considerations**
+
+- **Error Correction**:
+  - The redundancy introduced by G supports error correction mechanisms, ensuring robust recovery of x even when parts of c are corrupted.
+
+- **Trade-offs**:
+  - Increasing redundancy (larger n) improves noise immunity but increases bandwidth requirements. The optimization of G balances these trade-offs.
+
+In summary, the generator matrix G and the optimization of its m-height are critical for achieving robust and efficient communication in analog transmission systems.
 
 ---
 
 ## **Proposed Solution**
 
-The solution alternates between optimizing \( G \)-matrices and \( X \)-vectors using a hybrid approach that combines **genetic programming** and **stochastic optimization**.
+The solution alternates between optimizing G-matrices and X-vectors using a hybrid approach that combines **genetic programming** and **stochastic optimization**.
 
 ### **Step 1: Initialize**
-1. Generate a population of random full-rank \( G \)-matrices.
-2. Create a pool of random \( X \)-vectors.
+1. Generate a population of random full-rank G-matrices.
+2. Create a pool of random X-vectors.
 
 ### **Step 2: Iterative Optimization**
 For each iteration:
-1. **Optimize \( G \)-Matrices**:
-   - Evaluate the m-heights for the current population of \( G \)-matrices using the current \( X \)-vectors.
-   - Select the top-performing \( G \)-matrices based on m-heights.
-   - Apply genetic programming (mutation, crossover, and random generation) to expand the search space for \( G \).
+1. **Optimize G-Matrices**:
+   - Evaluate the m-heights for the current population of G-matrices using the current X-vectors.
+   - Select the top-performing G-matrices based on m-heights.
+   - Apply genetic programming (mutation, crossover, and random generation) to expand the search space for G.
 
-2. **Optimize \( X \)-Vectors**:
-   - For each selected \( G \)-matrix, refine its associated \( X \)-vectors to maximize m-heights.
-   - Update the pool of \( X \)-vectors with these refined vectors.
+2. **Optimize X-Vectors**:
+   - For each selected G-matrix, refine its associated X-vectors to maximize m-heights.
+   - Update the pool of X-vectors with these refined vectors.
 
 ### **Step 3: Repeat**
-Repeat the above process for a fixed number of iterations to iteratively improve both \( G \) and \( X \).
+Repeat the above process for a fixed number of iterations to iteratively improve both G and X.
 
 ---
 
@@ -152,18 +186,18 @@ Repeat the above process for a fixed number of iterations to iteratively improve
 
 ### **Key Components**
 1. **Full-Rank Matrix Generation**:
-   Ensures that each generated \( G \)-matrix is full rank by checking its rank condition during initialization.
+   Ensures that each generated G-matrix is full rank by checking its rank condition during initialization.
 
 2. **M-Height Calculation**:
-   Efficiently computes the m-height for a given \( G \) and set of \( X \)-vectors by:
-   - Multiplying \( X \)-vectors with \( G \).
-   - Extracting the largest and \( m \)-th largest absolute values for each codeword.
+   Efficiently computes the m-height for a given G and set of X-vectors by:
+   - Multiplying X-vectors with G.
+   - Extracting the largest and m-th largest absolute values for each codeword.
    - Computing the ratio to determine the m-height.
 
 3. **Genetic Programming**:
-   - **Mutation**: Applies small integer perturbations to elements of \( G \) or \( X \).
+   - **Mutation**: Applies small integer perturbations to elements of G or X.
    - **Crossover**: Combines elements from two matrices or vectors using a binary mask and adds perturbations.
-   - **Random Generation**: Introduces random \( G \)-matrices and \( X \)-vectors to maintain diversity.
+   - **Random Generation**: Introduces random G-matrices and X-vectors to maintain diversity.
 
 4. **Parallelization**:
    All operations leverage GPU acceleration for parallel computation using PyTorch tensors.
@@ -187,8 +221,8 @@ pip install torch tqdm
 
 Clone the Repository:
 ```bash
-git clone https://github.com/username/optimal-generator-matrix.git
-cd optimal-generator-matrix
+git clone https://github.com/aaupadhy/MHeightGeneratorForAnalogECC.git
+cd MHeightGeneratorForAnalogECC
 ```
 
 Execute the Python file
@@ -200,19 +234,19 @@ python main.py
 You can adjust the parameters directly in the script or pass them dynamically (if implemented). Key parameters include:
 
 - **Dimensions**:
-  - `k`: Number of rows in \( G \).
-  - `n`: Number of columns in \( G \).
+  - `k`: Number of rows in G.
+  - `n`: Number of columns in G.
   - `m`: Rank for m-height calculation.
 
 - **Population and Iteration Settings**:
-  - `G_population_size`: Number of \( G \)-matrices in the population.
-  - `x_vector_count`: Number of \( X \)-vectors in the pool.
+  - `G_population_size`: Number of G-matrices in the population.
+  - `x_vector_count`: Number of X-vectors in the pool.
   - `iterations`: Number of optimization iterations.
-  - `G_top_count`: Number of top-performing \( G \)-matrices to retain per iteration.
+  - `G_top_count`: Number of top-performing G-matrices to retain per iteration.
 
 - **Mutation and Crossover Settings**:
-  - `G_mutation_range`: Range of integer perturbations for \( G \).
-  - `X_mutation_range`: Range of integer perturbations for \( X \).
+  - `G_mutation_range`: Range of integer perturbations for G.
+  - `X_mutation_range`: Range of integer perturbations for X.
 
 ---
 
@@ -241,8 +275,8 @@ for i, (G, height) in enumerate(zip(best_Gs, best_m_heights)):
 
 The algorithm effectively balances exploration (through random generation) and exploitation (through refinement of top candidates). It is designed to handle large-scale problems by:
 
-- **Parallelization**: Leveraging GPU acceleration with PyTorch to process large populations of \( G \)-matrices and \( X \)-vectors simultaneously.
-- **Scalability**: Optimizing both \( G \)-matrices and \( X \)-vectors iteratively, allowing the approach to scale efficiently for higher dimensions or larger populations.
+- **Parallelization**: Leveraging GPU acceleration with PyTorch to process large populations of G-matrices and X-vectors simultaneously.
+- **Scalability**: Optimizing both G-matrices and X-vectors iteratively, allowing the approach to scale efficiently for higher dimensions or larger populations.
 - **Hybrid Optimization**: Combining genetic programming and stochastic optimization ensures diverse exploration and robust convergence.
 
 ---
